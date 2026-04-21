@@ -1,4 +1,4 @@
-// src/data/m2Shuttle.ts
+// src/data/m2shuttle.ts
 
 export type M2Direction = "cambridge_to_boston" | "boston_to_cambridge";
 
@@ -6,8 +6,8 @@ export interface M2Stop {
   id: string;
   name: string;
   shortLabel: string;
-  lat: number;   // approximate; verify with geocoding if needed
-  lng: number;   // approximate; verify with geocoding if needed
+  lat: number;
+  lng: number;
   addressHint?: string;
   directionOrder: {
     cambridge_to_boston?: number;
@@ -19,16 +19,16 @@ export interface M2Stop {
 
 export interface M2HeadwayWindow {
   days: ("mon" | "tue" | "wed" | "thu" | "fri")[];
-  startMinuteOfDay: number; // local Boston time
+  startMinuteOfDay: number;
   endMinuteOfDay: number;
-  headwayMin: number;       // approximate scheduled headway
+  headwayMin: number;
 }
 
 export interface M2TravelSegment {
   fromStopId: string;
   toStopId: string;
-  typicalMinutes: number;   // approximate in-vehicle time
-  peakMinutes?: number;     // optional morning/evening congestion estimate
+  typicalMinutes: number;
+  peakMinutes?: number;
 }
 
 export interface M2ServiceModel {
@@ -50,10 +50,9 @@ export interface M2ServiceModel {
 }
 
 const STOPS: M2Stop[] = [
-  // Cambridge / Harvard end
   {
     id: "lamont_library",
-    name: "Lamont Library",
+    name: "Harvard Square at Lamont Library",
     shortLabel: "Lamont",
     lat: 42.3729,
     lng: -71.1157,
@@ -63,12 +62,12 @@ const STOPS: M2Stop[] = [
   },
   {
     id: "mass_ave_holyoke_center",
-    name: "Mass Ave @ Holyoke Center",
+    name: "Mass Ave at Holyoke Center",
     shortLabel: "Holyoke",
     lat: 42.3733,
     lng: -71.1180,
     addressHint: "Massachusetts Ave & Holyoke St, Cambridge, MA",
-    directionOrder: { boston_to_cambridge: 0 },
+    directionOrder: { boston_to_cambridge: 9 },
     zone: "cambridge",
   },
   {
@@ -88,12 +87,12 @@ const STOPS: M2Stop[] = [
     lat: 42.3710,
     lng: -71.1187,
     addressHint: "Massachusetts Ave & Trowbridge St, Cambridge, MA",
-    directionOrder: { boston_to_cambridge: 1 },
+    directionOrder: { boston_to_cambridge: 8 },
     zone: "cambridge",
   },
   {
     id: "mass_ave_bay_st",
-    name: "Mass Ave & Bay St",
+    name: "Bay St & Mass Ave",
     shortLabel: "Bay St",
     lat: 42.3690,
     lng: -71.1096,
@@ -108,7 +107,7 @@ const STOPS: M2Stop[] = [
     lat: 42.3685,
     lng: -71.1083,
     addressHint: "Massachusetts Ave & Dana St, Cambridge, MA",
-    directionOrder: { boston_to_cambridge: 2 },
+    directionOrder: { boston_to_cambridge: 7 },
     zone: "cambridge",
   },
   {
@@ -120,27 +119,23 @@ const STOPS: M2Stop[] = [
     addressHint: "Central Square, Cambridge, MA",
     directionOrder: {
       cambridge_to_boston: 3,
-      boston_to_cambridge: 3,
+      boston_to_cambridge: 6,
     },
     zone: "cambridge",
   },
-
-  // MIT
   {
     id: "mit",
-    name: "MIT",
+    name: "Mass Ave at MIT",
     shortLabel: "MIT",
     lat: 42.3593,
     lng: -71.0935,
     addressHint: "77 Massachusetts Ave, Cambridge, MA",
     directionOrder: {
       cambridge_to_boston: 4,
-      boston_to_cambridge: 4,
+      boston_to_cambridge: 5,
     },
     zone: "mit",
   },
-
-  // Fenway / Kenmore
   {
     id: "mass_ave_beacon",
     name: "Mass Ave & Beacon St",
@@ -148,19 +143,34 @@ const STOPS: M2Stop[] = [
     lat: 42.3508,
     lng: -71.0892,
     addressHint: "Massachusetts Ave & Beacon St, Boston, MA",
-    directionOrder: { cambridge_to_boston: 5 },
+    directionOrder: {
+      cambridge_to_boston: 5,
+      boston_to_cambridge: 4,
+    },
     zone: "fenway",
   },
   {
     id: "kenmore",
-    name: "Kenmore",
+    name: "Kenmore Square",
     shortLabel: "Kenmore",
     lat: 42.3489,
     lng: -71.0951,
     addressHint: "Kenmore Square, Boston, MA",
-    directionOrder: { boston_to_cambridge: 5 },
+    directionOrder: {
+      cambridge_to_boston: 6,
+      boston_to_cambridge: 3,
+    },
     zone: "fenway",
-    isFlagStop: true,
+  },
+  {
+    id: "brookline_ave_fullerton",
+    name: "Brookline Ave & Fullerton St",
+    shortLabel: "Fullerton",
+    lat: 42.3446,
+    lng: -71.1004,
+    addressHint: "Brookline Ave & Fullerton St, Boston, MA",
+    directionOrder: { boston_to_cambridge: 1 },
+    zone: "fenway",
   },
   {
     id: "brookline_ave_jersey",
@@ -170,8 +180,8 @@ const STOPS: M2Stop[] = [
     lng: -71.0974,
     addressHint: "Brookline Ave & Jersey St, Boston, MA",
     directionOrder: {
-      cambridge_to_boston: 6,
-      boston_to_cambridge: 6,
+      cambridge_to_boston: 7,
+      boston_to_cambridge: 2,
     },
     zone: "fenway",
   },
@@ -181,15 +191,10 @@ const STOPS: M2Stop[] = [
     shortLabel: "Landmark",
     lat: 42.3441,
     lng: -71.1026,
-    addressHint: "401 Park Dr / Landmark Center area, Boston, MA",
-    directionOrder: {
-      cambridge_to_boston: 7,
-      boston_to_cambridge: 7,
-    },
+    addressHint: "Landmark Center area, Boston, MA",
+    directionOrder: { cambridge_to_boston: 8 },
     zone: "fenway",
   },
-
-  // Longwood end
   {
     id: "simmons_emmanuel",
     name: "Simmons & Emmanuel",
@@ -197,10 +202,7 @@ const STOPS: M2Stop[] = [
     lat: 42.3408,
     lng: -71.1048,
     addressHint: "Simmons University / Emmanuel College area, Boston, MA",
-    directionOrder: {
-      cambridge_to_boston: 8,
-      boston_to_cambridge: 8,
-    },
+    directionOrder: { cambridge_to_boston: 9 },
     zone: "longwood",
   },
   {
@@ -211,8 +213,8 @@ const STOPS: M2Stop[] = [
     lng: -71.1037,
     addressHint: "Vanderbilt Hall, 107 Avenue Louis Pasteur, Boston, MA",
     directionOrder: {
-      cambridge_to_boston: 9,
-      boston_to_cambridge: 9,
+      cambridge_to_boston: 10,
+      boston_to_cambridge: 0,
     },
     zone: "longwood",
   },
@@ -224,58 +226,56 @@ export const M2_SHUTTLE: M2ServiceModel = {
   operator: "Longwood Collective",
   type: "private_shuttle",
   requiresEligibility: true,
-  eligibilityNote:
-    "Harvard ID or pre-purchased ticket required for the M2 shuttle.",
+  eligibilityNote: "Harvard ID or pre-purchased ticket required for the M2 shuttle.",
   realtimeAvailable: true,
-  realtimeNote:
-    "Official materials point riders to the Passio Go app for live bus tracking and predictions.",
+  realtimeNote: "Official materials point riders to the Passio Go app for live bus tracking and predictions.",
   weekdayOnly: true,
   notes: [
     "M2 is a Longwood Collective shuttle, not a standard MBTA bus route.",
-    "Service is primarily weekday-only; 2026 Longwood materials describe weekday operation with limited Saturday M2 service and reduced summer service.",
+    "The printed schedules show weekday service.",
     "After 6 PM, shuttles will stop at any MBTA stop in Cambridge upon request.",
-    "Coordinates in this model are approximate and should be validated via geocoding before production use.",
+    "Boston→Cambridge order and timing are based on the official M2 Boston schedule PDF.",
+    "Cambridge→Boston order and timing are based on the official M2 Harvard schedule PDF.",
   ],
   walkingRadiusMeters: 800,
-  lateEveningFlagStopRule:
-    "After 18:00, allow drop-off at MBTA stops in Cambridge upon request.",
+  lateEveningFlagStopRule: "After 18:00, allow drop-off at any MBTA stop in Cambridge upon request.",
   headways: {
     cambridge_to_boston: [
-      // Approximate engineering model tuned for commute planning
-      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 390, endMinuteOfDay: 570, headwayMin: 10 }, // 6:30-9:30
-      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 570, endMinuteOfDay: 930, headwayMin: 20 }, // 9:30-15:30
-      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 930, endMinuteOfDay: 1140, headwayMin: 10 }, // 15:30-19:00
-      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 1140, endMinuteOfDay: 1410, headwayMin: 30 }, // 19:00-23:30
+      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 400, endMinuteOfDay: 600, headwayMin: 10 }, // 6:40-10:00
+      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 600, endMinuteOfDay: 950, headwayMin: 25 }, // sparse / mixed service
+      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 950, endMinuteOfDay: 1080, headwayMin: 10 }, // 15:50-18:00-ish strong PM service
+      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 1080, endMinuteOfDay: 1380, headwayMin: 30 }, // evening
     ],
     boston_to_cambridge: [
-      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 390, endMinuteOfDay: 570, headwayMin: 10 },
-      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 570, endMinuteOfDay: 930, headwayMin: 20 },
-      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 930, endMinuteOfDay: 1140, headwayMin: 10 },
-      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 1140, endMinuteOfDay: 1410, headwayMin: 30 },
+      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 430, endMinuteOfDay: 570, headwayMin: 10 }, // 7:10-9:30
+      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 570, endMinuteOfDay: 945, headwayMin: 25 }, // mixed midday pattern
+      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 945, endMinuteOfDay: 1090, headwayMin: 10 }, // 15:45-18:10-ish
+      { days: ["mon", "tue", "wed", "thu", "fri"], startMinuteOfDay: 1090, endMinuteOfDay: 1410, headwayMin: 30 }, // evening
     ],
   },
   segments: {
     cambridge_to_boston: [
-      { fromStopId: "lamont_library", toStopId: "mt_auburn_putnam", typicalMinutes: 3, peakMinutes: 4 },
-      { fromStopId: "mt_auburn_putnam", toStopId: "mass_ave_bay_st", typicalMinutes: 3, peakMinutes: 4 },
-      { fromStopId: "mass_ave_bay_st", toStopId: "central_square", typicalMinutes: 4, peakMinutes: 5 },
-      { fromStopId: "central_square", toStopId: "mit", typicalMinutes: 5, peakMinutes: 7 },
-      { fromStopId: "mit", toStopId: "mass_ave_beacon", typicalMinutes: 8, peakMinutes: 10 },
-      { fromStopId: "mass_ave_beacon", toStopId: "brookline_ave_jersey", typicalMinutes: 4, peakMinutes: 5 },
-      { fromStopId: "brookline_ave_jersey", toStopId: "landmark_building", typicalMinutes: 3, peakMinutes: 4 },
-      { fromStopId: "landmark_building", toStopId: "simmons_emmanuel", typicalMinutes: 3, peakMinutes: 4 },
-      { fromStopId: "simmons_emmanuel", toStopId: "vanderbilt_hall", typicalMinutes: 3, peakMinutes: 4 },
+      { fromStopId: "lamont_library",        toStopId: "mt_auburn_putnam",    typicalMinutes: 2, peakMinutes: 2 },
+      { fromStopId: "mt_auburn_putnam",      toStopId: "mass_ave_bay_st",     typicalMinutes: 1, peakMinutes: 2 },
+      { fromStopId: "mass_ave_bay_st",       toStopId: "central_square",      typicalMinutes: 2, peakMinutes: 3 },
+      { fromStopId: "central_square",        toStopId: "mit",                 typicalMinutes: 4, peakMinutes: 5 },
+      { fromStopId: "mit",                   toStopId: "mass_ave_beacon",     typicalMinutes: 5, peakMinutes: 6 },
+      { fromStopId: "mass_ave_beacon",       toStopId: "kenmore",             typicalMinutes: 1, peakMinutes: 1 },
+      { fromStopId: "kenmore",               toStopId: "brookline_ave_jersey",typicalMinutes: 2, peakMinutes: 3 },
+      { fromStopId: "brookline_ave_jersey",  toStopId: "landmark_building",   typicalMinutes: 2, peakMinutes: 2 },
+      { fromStopId: "landmark_building",     toStopId: "simmons_emmanuel",    typicalMinutes: 2, peakMinutes: 2 },
+      { fromStopId: "simmons_emmanuel",      toStopId: "vanderbilt_hall",     typicalMinutes: 2, peakMinutes: 2 },
     ],
     boston_to_cambridge: [
-      { fromStopId: "vanderbilt_hall", toStopId: "simmons_emmanuel", typicalMinutes: 3, peakMinutes: 4 },
-      { fromStopId: "simmons_emmanuel", toStopId: "landmark_building", typicalMinutes: 3, peakMinutes: 4 },
-      { fromStopId: "landmark_building", toStopId: "brookline_ave_jersey", typicalMinutes: 3, peakMinutes: 4 },
-      { fromStopId: "brookline_ave_jersey", toStopId: "kenmore", typicalMinutes: 4, peakMinutes: 5 },
-      { fromStopId: "kenmore", toStopId: "mass_ave_holyoke_center", typicalMinutes: 11, peakMinutes: 14 },
-      { fromStopId: "mass_ave_holyoke_center", toStopId: "mass_ave_trowbridge", typicalMinutes: 2, peakMinutes: 3 },
-      { fromStopId: "mass_ave_trowbridge", toStopId: "mass_ave_dana_st", typicalMinutes: 2, peakMinutes: 3 },
-      { fromStopId: "mass_ave_dana_st", toStopId: "central_square", typicalMinutes: 4, peakMinutes: 5 },
-      { fromStopId: "central_square", toStopId: "mit", typicalMinutes: 5, peakMinutes: 7 },
+      { fromStopId: "vanderbilt_hall",           toStopId: "brookline_ave_fullerton", typicalMinutes: 2, peakMinutes: 2 },
+      { fromStopId: "brookline_ave_fullerton",   toStopId: "brookline_ave_jersey",    typicalMinutes: 1, peakMinutes: 2 },
+      { fromStopId: "brookline_ave_jersey",      toStopId: "kenmore",                 typicalMinutes: 2, peakMinutes: 3 },
+      { fromStopId: "kenmore",                   toStopId: "mass_ave_beacon",         typicalMinutes: 1, peakMinutes: 1 },
+      { fromStopId: "mass_ave_beacon",           toStopId: "mit",                     typicalMinutes: 5, peakMinutes: 6 },
+      { fromStopId: "mit",                       toStopId: "central_square",          typicalMinutes: 4, peakMinutes: 5 },
+      { fromStopId: "central_square",            toStopId: "mass_ave_dana_st",        typicalMinutes: 2, peakMinutes: 2 },
+      { fromStopId: "mass_ave_dana_st",          toStopId: "mass_ave_trowbridge",     typicalMinutes: 2, peakMinutes: 2 },
+      { fromStopId: "mass_ave_trowbridge",       toStopId: "mass_ave_holyoke_center", typicalMinutes: 2, peakMinutes: 2 },
     ],
   },
   stops: STOPS,
