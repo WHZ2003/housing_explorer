@@ -174,26 +174,30 @@ const AppShell: React.FC = () => {
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
       <NavBar currentPage={currentPage} onNavigate={setCurrentPage} />
 
-      {currentPage === 'main' && (
+      {/* All three pages are always mounted so local state survives navigation.
+          Inactive pages are hidden with display:none instead of being unmounted. */}
+      <div style={{ display: currentPage === 'main' ? 'contents' : 'none' }}>
         <MainPage mapsLoaded={mapsLoaded} apiKeyPresent={apiKeyPresent} />
-      )}
+      </div>
 
-      {currentPage === 'settings' && (
-        <div className="flex-1 overflow-y-auto">
-          <SettingsPage />
-        </div>
-      )}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ display: currentPage === 'settings' ? 'block' : 'none' }}
+      >
+        <SettingsPage />
+      </div>
 
-      {currentPage === 'batch' && (
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {!apiKeyPresent && (
-            <div className="px-4 py-2 border-b border-gray-200 bg-white flex-shrink-0">
-              <ApiKeyBanner />
-            </div>
-          )}
-          <BatchPage mapsLoaded={mapsLoaded} />
-        </div>
-      )}
+      <div
+        className="flex-1 min-h-0 flex flex-col overflow-hidden"
+        style={{ display: currentPage === 'batch' ? 'flex' : 'none' }}
+      >
+        {!apiKeyPresent && (
+          <div className="px-4 py-2 border-b border-gray-200 bg-white flex-shrink-0">
+            <ApiKeyBanner />
+          </div>
+        )}
+        <BatchPage mapsLoaded={mapsLoaded} />
+      </div>
     </div>
   );
 };
