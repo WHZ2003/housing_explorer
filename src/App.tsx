@@ -213,7 +213,11 @@ const AppShell: React.FC = () => {
         className="flex-1 overflow-y-auto"
         style={{ display: currentPage === 'favorites' ? 'block' : 'none' }}
       >
-        <FavoritesPage />
+        <FavoritesPage
+          mapsLoaded={mapsLoaded}
+          onNavigateToBatch={() => setCurrentPage('batch')}
+          onOpenCompare={() => setCompareOpen(true)}
+        />
       </div>
 
       {/* Compare modal — global overlay, accessible from any page */}

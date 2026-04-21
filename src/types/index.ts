@@ -224,5 +224,7 @@ export interface SavedApartment {
   weightedScore: number;
   /** Unix ms timestamp of when the user saved this apartment. */
   savedAt: number;
+  /** Unix ms timestamp of the most recent commute refresh (undefined = never refreshed). */
+  commuteUpdatedAt?: number;
   note: string;
 }

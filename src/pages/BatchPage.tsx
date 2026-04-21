@@ -7,6 +7,7 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { FavoriteButton } from '../components/FavoriteButton';
+import { useCommuteCalculator } from '../hooks/useCommuteCalculator';
 import {
   searchPlacesWithFallback,
   getPlaceDetails,
@@ -154,7 +155,15 @@ interface Props { mapsLoaded: boolean }
 
 export const BatchPage: React.FC<Props> = ({ mapsLoaded }) => {
   const { activeDestinations, enabledModes } = useAppContext();
-  const { addToCompare, removeFromCompare, isInCompare } = useFavorites();
+  const {
+    addFavorite, removeFavorite, isFavorite,
+    addToCompare, removeFromCompare, isInCompare,
+    batchImportQueue, clearBatchImportQueue,
+  } = useFavorites();
+  const { computeCommutes } = useCommuteCalculator();
+
+  // Tracks apartments currently having commutes computed for a save operation.
+  const [savingIds, setSavingIds] = useState(() => new Set<string>());
 
   // ── Apartment list ──────────────────────────────────────────────────────
 
@@ -196,6 +205,40 @@ export const BatchPage: React.FC<Props> = ({ mapsLoaded }) => {
   const inputRef    = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Async save to favorites (computes commutes if not already done) ─────────
+
+  const handleSaveToFavorites = useCallback(async (apt: ApartmentEntry) => {
+    if (isFavorite(apt.id)) { removeFavorite(apt.id); return; }
+    if (!apt.place) { addFavorite(apt); return; }
+
+    let target = apt;
+    if (apt.commuteStatus !== 'done' || apt.destinations.length === 0) {
+      setSavingIds(prev => new Set([...prev, apt.id]));
+      try {
+        const result = await computeCommutes(apt.place);
+        target = { ...apt, ...result, commuteStatus: 'done', commuteError: null };
+        setApartments(prev => prev.map(a => a.id === target.id ? target : a));
+      } catch {
+        // Still save — just without fresh commute data.
+      } finally {
+        setSavingIds(prev => { const s = new Set(prev); s.delete(apt.id); return s; });
+      }
+    }
+    addFavorite(target);
+  }, [isFavorite, removeFavorite, addFavorite, computeCommutes]);
+
+  // ── Batch import from FavoritesPage ──────────────────────────────────────
+
+  useEffect(() => {
+    if (!batchImportQueue.length) return;
+    setApartments(prev => {
+      const existingIds = new Set(prev.map(a => a.id));
+      const newOnes = batchImportQueue.filter(a => !existingIds.has(a.id));
+      return newOnes.length ? [...prev, ...newOnes] : prev;
+    });
+    clearBatchImportQueue();
+  }, [batchImportQueue, clearBatchImportQueue]);
 
   // ── Debounced search ─────────────────────────────────────────────────────
 
@@ -689,8 +732,12 @@ export const BatchPage: React.FC<Props> = ({ mapsLoaded }) => {
 
                     {/* Actions */}
                     <div className="flex items-center gap-0.5 flex-shrink-0">
-                      {/* Favorite toggle */}
-                      <FavoriteButton apartment={apt} />
+                      {/* Favorite toggle — computes commutes first if needed */}
+                      <FavoriteButton
+                        apartment={apt}
+                        onToggle={handleSaveToFavorites}
+                        isSaving={savingIds.has(apt.id)}
+                      />
 
                       {/* Compare toggle — only when commute is done */}
                       {apt.commuteStatus === 'done' && (() => {
@@ -845,7 +892,7 @@ export const BatchPage: React.FC<Props> = ({ mapsLoaded }) => {
                         <p className="font-medium text-gray-900 text-sm truncate max-w-[150px]">{apt.place?.name ?? apt.inputLabel}</p>
                         <p className="text-[11px] text-gray-400 truncate max-w-[150px]">{apt.place?.formattedAddress}</p>
                         <div className="flex items-center gap-0.5 mt-1" onClick={e => e.stopPropagation()}>
-                          <FavoriteButton apartment={apt} />
+                          <FavoriteButton apartment={apt} onToggle={handleSaveToFavorites} />
                           {(() => {
                             const inCmp = isInCompare(apt.id);
                             return (
