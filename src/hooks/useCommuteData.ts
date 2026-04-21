@@ -8,7 +8,8 @@ import type {
   SelectedPlace,
   TravelMode,
 } from '../types';
-import { calculateCommuteTimes } from '../services/mapsService';
+import { calculateCommuteTimes, nextWeekday9AM } from '../services/mapsService';
+import { estimateM2Commute } from '../services/m2CommuteService';
 import { calculateWeightedScore, getCommuteScore } from '../utils/scoring';
 
 export function useCommuteData(
@@ -25,7 +26,6 @@ export function useCommuteData(
       setError(null);
       setResult(null);
 
-      // Only calculate for enabled destinations
       const activeDests = destinations.filter(d => d.enabled);
       if (!activeDests.length) {
         setError({ type: 'unknown', message: 'No destinations are enabled. Enable at least one in Settings.' });
@@ -34,30 +34,33 @@ export function useCommuteData(
       }
 
       try {
+        const departure = nextWeekday9AM();
         const destAddresses = activeDests.map(d => d.address);
         const matrix = await calculateCommuteTimes(place.latLng, destAddresses, enabledModes);
 
         const destinationCommutes: DestinationCommute[] = activeDests.map((dest, i) => {
           const legs = matrix[i];
 
-          // Best time = min of OK legs in enabled modes
-          const okSeconds = legs
-            .filter(l => l.status === 'OK')
-            .map(l => l.durationSeconds);
-
-          // For scoring: prefer driving + transit over walking alone
+          const okSeconds = legs.filter(l => l.status === 'OK').map(l => l.durationSeconds);
           const preferredSeconds = legs
             .filter(l => l.status === 'OK' && (l.mode === 'driving' || l.mode === 'transit'))
             .map(l => l.durationSeconds);
-
           const candidates = preferredSeconds.length > 0 ? preferredSeconds : okSeconds;
           const best = candidates.length > 0 ? Math.min(...candidates) : Infinity;
+
+          // M2 shuttle option (synchronous, no API call)
+          const m2 = estimateM2Commute(
+            place.latLng,
+            { lat: dest.lat, lng: dest.lng },
+            departure
+          );
 
           return {
             destination: dest,
             legs,
             bestDurationSeconds: best,
             score: getCommuteScore(best === Infinity ? 99999 : best),
+            m2: m2 ?? null,
           };
         });
 

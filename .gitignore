@@ -10,6 +10,12 @@ dist-ssr/
 .env.local
 .env.*.local
 
+# Claude Code internal settings
+.claude/
+
+# Local dev notes / prompt files
+prompt
+
 # Editor / OS
 .DS_Store
 Thumbs.db

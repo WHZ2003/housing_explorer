@@ -23,12 +23,30 @@ export interface CommuteLeg {
   status: 'OK' | 'NOT_FOUND' | 'ZERO_RESULTS' | 'MAX_WAYPOINTS_EXCEEDED' | 'INVALID_REQUEST' | 'REQUEST_DENIED' | 'UNKNOWN_ERROR';
 }
 
+/** M2 shuttle commute option computed alongside standard Google legs. */
+export interface M2Leg {
+  /** Total door-to-door seconds: walk-to-stop + wait + ride + walk-from-stop */
+  totalSeconds: number;
+  boardStopName: string;
+  alightStopName: string;
+  walkToMinutes: number;
+  /** In-vehicle minutes including average wait */
+  rideMinutes: number;
+  walkFromMinutes: number;
+}
+
 export interface DestinationCommute {
   destination: Destination;
   legs: CommuteLeg[];
-  /** Best (min) of driving + transit OK legs, in seconds. */
+  /** Best (min) of driving + transit OK legs, in seconds. Does NOT include M2. */
   bestDurationSeconds: number;
   score: CommuteScore;
+  /**
+   * M2 shuttle option for this destination.
+   * null  = computed, not viable (stop too far or direction invalid)
+   * undefined = not yet computed
+   */
+  m2?: M2Leg | null;
 }
 
 export type CommuteScore = 'excellent' | 'good' | 'acceptable' | 'far';
@@ -153,4 +171,33 @@ export interface BatchRow {
   averageBestSeconds: number;
   weightedScore: number;
   status: BatchStatus;
+}
+
+// ---------------------------------------------------------------------------
+// Redesigned apartment model for batch comparison
+// ---------------------------------------------------------------------------
+
+/** Whether the user has verified the resolved location. */
+export type ApartmentConfirmStatus = 'confirmed' | 'needs_review' | 'unconfirmed';
+
+/** How the apartment was added. */
+export type ApartmentSource = 'manual' | 'bulk';
+
+export interface ApartmentEntry {
+  id: string;
+  /** Raw text the user typed or pasted */
+  inputLabel: string;
+  /** Resolved + (optionally adjusted) place */
+  place: SelectedPlace | null;
+  confirmStatus: ApartmentConfirmStatus;
+  source: ApartmentSource;
+  resolveError: string | null;
+  /** Candidate predictions stored when bulk-paste finds multiple matches */
+  candidates: PlacePrediction[];
+  // Commute results (populated after Calculate)
+  commuteStatus: 'idle' | 'calculating' | 'done' | 'error';
+  destinations: DestinationCommute[];
+  averageBestSeconds: number;
+  weightedScore: number;
+  commuteError: string | null;
 }

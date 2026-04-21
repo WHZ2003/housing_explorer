@@ -185,13 +185,13 @@ const AppShell: React.FC = () => {
       )}
 
       {currentPage === 'batch' && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {!apiKeyPresent && (
-            <div className="px-6 pt-6">
+            <div className="px-4 py-2 border-b border-gray-200 bg-white flex-shrink-0">
               <ApiKeyBanner />
             </div>
           )}
-          <BatchPage />
+          <BatchPage mapsLoaded={mapsLoaded} />
         </div>
       )}
     </div>
