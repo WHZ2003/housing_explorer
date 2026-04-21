@@ -25,12 +25,22 @@ export interface CommuteLeg {
 
 /** M2 shuttle commute option computed alongside standard Google legs. */
 export interface M2Leg {
-  /** Total door-to-door seconds: walk-to-stop + wait + ride + walk-from-stop */
+  /** Total door-to-door seconds: walk-to-stop + ride + walk-from-stop (no wait) */
   totalSeconds: number;
   boardStopName: string;
   alightStopName: string;
   walkToMinutes: number;
-  /** In-vehicle minutes including average wait */
+  /** In-vehicle minutes only (no wait time) */
+  rideMinutes: number;
+  walkFromMinutes: number;
+}
+
+/** Harvard Square ↔ SEC shuttle commute option. */
+export interface HarvardShuttleLeg {
+  /** Total door-to-door seconds: walk-to-HvSq + 10 min ride + walk-from-SEC (no wait) */
+  totalSeconds: number;
+  walkToMinutes: number;
+  /** Always 10 minutes */
   rideMinutes: number;
   walkFromMinutes: number;
 }
@@ -38,15 +48,13 @@ export interface M2Leg {
 export interface DestinationCommute {
   destination: Destination;
   legs: CommuteLeg[];
-  /** Best (min) of driving + transit OK legs, in seconds. Does NOT include M2. */
+  /** Best of driving + transit OK legs, in seconds. Does NOT include shuttle options. */
   bestDurationSeconds: number;
   score: CommuteScore;
-  /**
-   * M2 shuttle option for this destination.
-   * null  = computed, not viable (stop too far or direction invalid)
-   * undefined = not yet computed
-   */
+  /** M2 shuttle option. null = computed, not viable. undefined = not yet computed. */
   m2?: M2Leg | null;
+  /** Harvard Sq ↔ SEC shuttle option. null = not viable. undefined = not computed. */
+  harvardShuttle?: HarvardShuttleLeg | null;
 }
 
 export type CommuteScore = 'excellent' | 'good' | 'acceptable' | 'far';

@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { calculateCommuteTimes, nextWeekday9AM } from '../services/mapsService';
 import { estimateM2Commute } from '../services/m2CommuteService';
+import { estimateHarvardShuttle } from '../services/harvardShuttleService';
 import { calculateWeightedScore, getCommuteScore } from '../utils/scoring';
 
 export function useCommuteData(
@@ -48,12 +49,10 @@ export function useCommuteData(
           const candidates = preferredSeconds.length > 0 ? preferredSeconds : okSeconds;
           const best = candidates.length > 0 ? Math.min(...candidates) : Infinity;
 
-          // M2 shuttle option (synchronous, no API call)
-          const m2 = estimateM2Commute(
-            place.latLng,
-            { lat: dest.lat, lng: dest.lng },
-            departure
-          );
+          // Shuttle options (synchronous, no API call)
+          const destLatLng = { lat: dest.lat, lng: dest.lng };
+          const m2 = estimateM2Commute(place.latLng, destLatLng, departure);
+          const harvardShuttle = estimateHarvardShuttle(place.latLng, destLatLng);
 
           return {
             destination: dest,
@@ -61,6 +60,7 @@ export function useCommuteData(
             bestDurationSeconds: best,
             score: getCommuteScore(best === Infinity ? 99999 : best),
             m2: m2 ?? null,
+            harvardShuttle: harvardShuttle ?? null,
           };
         });
 

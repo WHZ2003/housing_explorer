@@ -24,12 +24,21 @@ const MODE_LABEL: Record<TravelMode, string> = {
 };
 
 export const ResultCard: React.FC<Props> = ({ commute, rank, isSelected, onSelect }) => {
-  const { destination, legs, bestDurationSeconds, score, m2 } = commute;
+  const { destination, legs, bestDurationSeconds, score, m2, harvardShuttle } = commute;
   const cfg = SCORE_CONFIG[score];
 
-  // Determine if M2 beats the standard best
   const m2IsViable = m2 != null && m2.totalSeconds < Infinity;
   const m2IsBetter = m2IsViable && m2!.totalSeconds < bestDurationSeconds;
+
+  const harvardIsViable = harvardShuttle != null && harvardShuttle.totalSeconds < Infinity;
+  const harvardIsBetter = harvardIsViable && harvardShuttle!.totalSeconds < bestDurationSeconds &&
+    (!m2IsViable || harvardShuttle!.totalSeconds < m2!.totalSeconds);
+
+  const bestShuttleSeconds = Math.min(
+    m2IsViable ? m2!.totalSeconds : Infinity,
+    harvardIsViable ? harvardShuttle!.totalSeconds : Infinity,
+  );
+  const overallBest = Math.min(bestDurationSeconds, bestShuttleSeconds);
 
   return (
     <button
@@ -118,7 +127,7 @@ export const ResultCard: React.FC<Props> = ({ commute, rank, isSelected, onSelec
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              {m2IsBetter && (
+              {m2IsBetter && !harvardIsBetter && (
                 <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full">
                   Best
                 </span>
@@ -129,17 +138,40 @@ export const ResultCard: React.FC<Props> = ({ commute, rank, isSelected, onSelec
             </div>
           </div>
         )}
+
+        {/* Harvard shuttle row */}
+        {harvardIsViable && (
+          <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-gray-50">
+            <div className="flex items-center gap-2">
+              <Bus className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-xs text-emerald-700 font-medium">Harvard Shuttle</span>
+              <span className="text-[10px] text-gray-400">
+                walk {harvardShuttle!.walkToMinutes}m → Hv Sq → SEC → walk {harvardShuttle!.walkFromMinutes}m
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {harvardIsBetter && (
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                  Best
+                </span>
+              )}
+              <span className="text-sm font-semibold text-emerald-700">
+                {formatDuration(harvardShuttle!.totalSeconds)}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Best time footer */}
       <div className="mt-3 pt-2.5 border-t border-gray-50 flex items-center justify-between">
         <span className="text-xs text-gray-400">Best commute</span>
         <div className="flex items-center gap-1.5">
-          {m2IsBetter && (
-            <Bus className="w-3 h-3 text-violet-500" />
+          {(m2IsBetter || harvardIsBetter) && (
+            <Bus className={`w-3 h-3 ${harvardIsBetter ? 'text-emerald-600' : 'text-violet-500'}`} />
           )}
           <span className="text-sm font-bold text-gray-900">
-            {formatDuration(m2IsBetter ? m2!.totalSeconds : bestDurationSeconds)}
+            {formatDuration(overallBest)}
           </span>
         </div>
       </div>

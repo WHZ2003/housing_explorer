@@ -13,6 +13,7 @@ import {
   nextWeekday9AM,
 } from '../services/mapsService';
 import { estimateM2Commute } from '../services/m2CommuteService';
+import { estimateHarvardShuttle } from '../services/harvardShuttleService';
 import { calculateWeightedScore, getCommuteScore, formatDuration, SCORE_CONFIG } from '../utils/scoring';
 import { BatchMapView } from '../components/BatchMapView';
 import type {
@@ -56,7 +57,13 @@ function bestVal(rows: ApartmentEntry[], field: SortField): number {
       if (field === 'average') return r.averageBestSeconds;
       if (field.startsWith('dest:')) {
         const id = field.slice(5);
-        return r.destinations.find(d => d.destination.id === id)?.bestDurationSeconds ?? Infinity;
+        const dc = r.destinations.find(d => d.destination.id === id);
+        if (!dc) return Infinity;
+        return Math.min(
+          dc.bestDurationSeconds,
+          dc.m2?.totalSeconds ?? Infinity,
+          dc.harvardShuttle?.totalSeconds ?? Infinity,
+        );
       }
       return Infinity;
     });
@@ -382,12 +389,15 @@ export const BatchPage: React.FC<Props> = ({ mapsLoaded }) => {
         const preferred = legs.filter(l => l.status === 'OK' && (l.mode === 'driving' || l.mode === 'transit')).map(l => l.durationSeconds);
         const best = (preferred.length ? preferred : ok).reduce((mn, v) => Math.min(mn, v), Infinity);
 
-        const m2 = estimateM2Commute(apt.place!.latLng, { lat: dest.lat, lng: dest.lng }, departure);
+        const destLatLng = { lat: dest.lat, lng: dest.lng };
+        const m2 = estimateM2Commute(apt.place!.latLng, destLatLng, departure);
+        const harvardShuttle = estimateHarvardShuttle(apt.place!.latLng, destLatLng);
         return {
           destination: dest, legs,
           bestDurationSeconds: best,
           score: getCommuteScore(best === Infinity ? 99999 : best),
           m2: m2 ?? null,
+          harvardShuttle: harvardShuttle ?? null,
         };
       });
 
@@ -820,22 +830,29 @@ export const BatchPage: React.FC<Props> = ({ mapsLoaded }) => {
                       {activeDestinations.map(dest => {
                         const dc   = apt.destinations.find(d => d.destination.id === dest.id);
                         const secs = dc?.bestDurationSeconds ?? Infinity;
-                        const m2   = dc?.m2;
-                        const m2Beats = m2 && m2.totalSeconds < secs;
-                        const display = m2Beats ? m2!.totalSeconds : secs;
-                        const isBest = display === bestPerDest[dest.id];
+                        const m2Secs   = dc?.m2?.totalSeconds ?? Infinity;
+                        const harvSecs = dc?.harvardShuttle?.totalSeconds ?? Infinity;
+                        const bestSecs = Math.min(secs, m2Secs, harvSecs);
+                        const m2Beats   = m2Secs < secs && m2Secs <= harvSecs;
+                        const harvBeats = harvSecs < secs && harvSecs < m2Secs;
+                        const isBest = bestSecs === bestPerDest[dest.id];
 
                         return (
                           <td key={dest.id} className="px-3 py-3 text-center">
-                            {display < Infinity ? (
+                            {bestSecs < Infinity ? (
                               <div className={['inline-flex flex-col items-center', isBest ? 'text-emerald-700' : 'text-gray-700'].join(' ')}>
                                 <span className={['text-sm font-medium', isBest ? 'font-semibold' : ''].join(' ')}>
-                                  {formatDuration(display)}
+                                  {formatDuration(bestSecs)}
                                   {isBest && <span className="ml-0.5 text-[10px]">★</span>}
                                 </span>
                                 {m2Beats && (
                                   <span className="flex items-center gap-0.5 text-[10px] text-violet-500 font-medium mt-0.5">
                                     <Bus className="w-2.5 h-2.5" /> M2
+                                  </span>
+                                )}
+                                {harvBeats && (
+                                  <span className="flex items-center gap-0.5 text-[10px] text-emerald-600 font-medium mt-0.5">
+                                    <Bus className="w-2.5 h-2.5" /> Harv
                                   </span>
                                 )}
                               </div>
