@@ -29,7 +29,8 @@ Default destinations (fully configurable in Settings):
 - **Dynamic destinations** — add, remove, edit, re-weight via Settings
 - **Configurable weights** — priority sliders; weights normalised automatically
 - **Search page** — real commute times + interactive map with markers and route overlay
-- **Batch comparison** — resolve many apartments at once; sortable table; CSV export
+- **Batch comparison** — add apartments one-by-one with map confirmation, or bulk-paste; sortable table; CSV export
+- **M2 shuttle** — Harvard–MIT–Longwood shuttle modelled as a first-class commute option; shown alongside standard transit in results
 - **Transit overlay** — nearby MBTA subway and bus stops with line names (via MBTA API)
 - **Scoring** — 0–100 weighted score; Excellent / Good / Acceptable / Far labels
 - **Persisted settings** — destinations, modes, and weights saved to `localStorage`
@@ -84,30 +85,36 @@ src/
 │   └── AppContext.tsx        # Centralized state: destinations, modes (localStorage-backed)
 ├── components/
 │   ├── ApiKeyBanner.tsx      # Setup notice when key is missing
+│   ├── BatchMapView.tsx      # Map for Batch page: numbered apt pins, pending/draggable pin
 │   ├── EmptyState.tsx        # Pre-search idle state
 │   ├── InputCard.tsx         # Address search + autocomplete
 │   ├── MapView.tsx           # Google Map, AdvancedMarkerElement, route overlay
 │   ├── NavBar.tsx            # Top navigation (Search / Batch / Settings)
-│   ├── ResultCard.tsx        # Per-destination commute card
+│   ├── ResultCard.tsx        # Per-destination commute card (includes M2 row)
 │   ├── ResultsSection.tsx    # Results list with loading/error states
 │   ├── SummaryPanel.tsx      # Aggregated stats + CSV export
 │   ├── TransitPanel.tsx      # Nearby MBTA transit summary
 │   └── TravelModeSelector.tsx # Driving / Transit / Walking chip toggles
 ├── constants/
 │   └── destinations.ts      # Default destinations + color palette
+├── data/
+│   ├── m2shuttle.ts         # M2 stop definitions, headways, segment times
+│   └── m2DestinationHints.ts # Destination → nearest M2 stop mapping hints
 ├── hooks/
-│   └── useCommuteData.ts    # Commute calculation state (context-aware)
+│   └── useCommuteData.ts    # Commute calculation state; computes M2 leg per destination
 ├── i18n/
 │   └── en.ts                # English UI strings
 ├── pages/
 │   ├── SettingsPage.tsx     # Destination config, weight sliders, mode selector
-│   └── BatchPage.tsx        # Multi-apartment input, resolution, sortable table, CSV
+│   └── BatchPage.tsx        # Sidebar+map layout; Mode A (one-by-one) + Mode B (bulk paste)
 ├── services/
 │   ├── mapsService.ts       # Maps loader; AutocompleteSuggestion, Place, Distance Matrix,
 │   │                        #   route renderer layer, nextWeekday9AM()
+│   ├── m2CommuteService.ts  # Haversine distance + M2 best-route estimator
+│   ├── m2Estimate.ts        # In-vehicle ride time from M2 segment data
 │   └── transitService.ts   # Nearby transit via Place.searchNearby + MBTA enrichment
 ├── types/
-│   └── index.ts             # TypeScript interfaces (Destination, BatchRow, AppSettings…)
+│   └── index.ts             # TypeScript interfaces (Destination, ApartmentEntry, M2Leg…)
 ├── utils/
 │   └── scoring.ts           # Commute scoring, formatting helpers
 ├── App.tsx                  # Root: AppProvider + 3-page router + layout
@@ -160,7 +167,17 @@ NavBar (48px)
     └── Map    (flex-1, min-h-0)
 ```
 
-Settings and Batch pages use a centered `max-w-2xl` / full-width scrollable layout.
+The **Batch** page uses the same sidebar + map pattern:
+
+```
+NavBar (48px)
+└── flex row (remaining height)
+    ├── Sidebar (400px, overflow-y-auto)   ← add flow + apartment list
+    └── Map    (flex-1, min-h-0)           ← BatchMapView
+└── Comparison table (max-h-[42vh], below, only when results exist)
+```
+
+The Settings page uses a centered `max-w-2xl` scrollable layout.
 
 ## Adjusting Destination Weights
 
@@ -185,6 +202,61 @@ Driving and transit are preferred over walking for "best" calculation.
 
 **Weighted score** (0–100) = weighted average of best commute times across all
 enabled destinations, normalised so 0 min → 100 and 60 min → 0.
+
+## M2 Shuttle Model
+
+The M2 (Harvard–MIT–Longwood) shuttle is modelled as a first-class commute
+option computed entirely offline — no external API call required.
+
+### Data sources
+
+| File | Contents |
+|------|----------|
+| `src/data/m2shuttle.ts` | Stop lat/lngs, route order (both directions), headway windows, segment times |
+| `src/data/m2DestinationHints.ts` | Destination → nearest M2 stop hints (informational; not used in routing) |
+| `src/services/m2Estimate.ts` | In-vehicle ride time from segment data |
+| `src/services/m2CommuteService.ts` | Full door-to-door estimate: walk-to-stop + ride + walk-from-stop |
+
+### How the estimate is computed
+
+For each apartment → destination pair:
+
+1. **Enumerate all valid (board, alight) stop pairs** in both route directions.
+   A pair is valid when the alight stop comes after the board stop in the direction's sequence.
+2. **Filter by walk distance** — board stop must be ≤ 1 400 m from the apartment;
+   alight stop must be ≤ 1 400 m from the destination (~18 min walk each).
+3. **Compute total** = `walk_to_board + in_vehicle + walk_from_alight`.
+   Walk times use 1.2 m/s (≈ 4.3 km/h). Ride time uses peak segment durations
+   during morning rush (07:00–10:00) and afternoon rush (15:30–18:30).
+4. **Pick the minimum** across all valid pairs and both directions.
+
+### Travel time calibration (updated)
+
+Segment times were corrected against the official M2 schedule PDF:
+
+| Route | Typical | Peak |
+|-------|---------|------|
+| Cambridge → Longwood (full) | ~23 min | ~28 min |
+| Longwood → Cambridge (full) | ~21 min | ~25 min |
+
+`estimateM2RideMinutes()` returns **in-vehicle time only** (no wait time), so
+the model represents a best-case scenario. This is intentional — it avoids
+penalising the shuttle versus subway unfairly when comparing options.
+
+### UI behaviour
+
+- A **violet M2 row** appears in `ResultCard` whenever the shuttle serves the
+  origin → destination corridor, showing board stop, alight stop, and walk legs.
+- A **"Best"** badge appears when M2 beats the standard commute.
+- In the Batch comparison table, cells annotated with a bus icon indicate the
+  displayed time comes from the M2 option.
+
+### Eligibility note
+
+The M2 is a Longwood Collective private shuttle. A Harvard ID or pre-purchased
+ticket is required. Riders can track live buses via the **Passio Go** app.
+
+---
 
 ## Tech Stack
 
