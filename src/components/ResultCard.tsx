@@ -1,0 +1,133 @@
+import React from 'react';
+import { Car, Train, Footprints, ChevronRight } from 'lucide-react';
+import type { DestinationCommute, TravelMode } from '../types';
+import { SCORE_CONFIG, formatDuration, formatDistance } from '../utils/scoring';
+import { en } from '../i18n/en';
+
+interface Props {
+  commute: DestinationCommute;
+  rank: number;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+const MODE_ICON: Record<TravelMode, React.ReactNode> = {
+  driving: <Car className="w-3.5 h-3.5" />,
+  transit: <Train className="w-3.5 h-3.5" />,
+  walking: <Footprints className="w-3.5 h-3.5" />,
+};
+
+const MODE_LABEL: Record<TravelMode, string> = {
+  driving: en.travel.driving,
+  transit: en.travel.transit,
+  walking: en.travel.walking,
+};
+
+export const ResultCard: React.FC<Props> = ({
+  commute,
+  rank,
+  isSelected,
+  onSelect,
+}) => {
+  const { destination, legs, bestDurationSeconds, score } = commute;
+  const cfg = SCORE_CONFIG[score];
+
+  return (
+    <button
+      onClick={onSelect}
+      className={[
+        'card w-full text-left p-4 transition-all duration-150 cursor-pointer',
+        'hover:shadow-card-hover hover:-translate-y-0.5',
+        isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : '',
+      ].join(' ')}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Rank badge */}
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+            style={{ backgroundColor: destination.color }}
+          >
+            {rank}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {destination.name}
+            </p>
+            <p className="text-xs text-gray-400 truncate mt-0.5">
+              {destination.address}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Score badge */}
+          <span
+            className={[
+              'text-xs font-semibold px-2.5 py-1 rounded-full border',
+              cfg.textColor,
+              cfg.bgColor,
+              cfg.borderColor,
+            ].join(' ')}
+          >
+            {cfg.label}
+          </span>
+          <ChevronRight
+            className={[
+              'w-4 h-4 transition-transform',
+              isSelected ? 'rotate-90 text-blue-500' : 'text-gray-300',
+            ].join(' ')}
+          />
+        </div>
+      </div>
+
+      {/* Travel mode rows */}
+      <div className="space-y-1.5 border-t border-gray-50 pt-3">
+        {legs.map((leg) => {
+          const ok = leg.status === 'OK';
+          return (
+            <div key={leg.mode} className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-gray-500">
+                <span className={ok ? 'text-gray-400' : 'text-gray-300'}>
+                  {MODE_ICON[leg.mode]}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {MODE_LABEL[leg.mode]}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-right">
+                {ok ? (
+                  <>
+                    <span className="text-sm font-semibold text-gray-800">
+                      {formatDuration(leg.durationSeconds)}
+                    </span>
+                    {leg.distanceMeters !== undefined && (
+                      <span className="text-xs text-gray-400 w-14 text-right">
+                        {formatDistance(leg.distanceMeters)}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-300 italic">
+                    {leg.mode === 'walking' && bestDurationSeconds > 30 * 60
+                      ? 'Too far to walk'
+                      : en.travel.notAvailable}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Best time footer */}
+      <div className="mt-3 pt-2.5 border-t border-gray-50 flex items-center justify-between">
+        <span className="text-xs text-gray-400">Best commute</span>
+        <span className="text-sm font-bold text-gray-900">
+          {formatDuration(bestDurationSeconds)}
+        </span>
+      </div>
+    </button>
+  );
+};
