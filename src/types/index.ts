@@ -209,3 +209,20 @@ export interface ApartmentEntry {
   weightedScore: number;
   commuteError: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Favorites + Compare
+// ---------------------------------------------------------------------------
+
+/** A snapshot of an apartment saved to favorites, with personal notes. */
+export interface SavedApartment {
+  id: string;
+  inputLabel: string;
+  place: SelectedPlace | null;
+  destinations: DestinationCommute[];
+  averageBestSeconds: number;
+  weightedScore: number;
+  /** Unix ms timestamp of when the user saved this apartment. */
+  savedAt: number;
+  note: string;
+}

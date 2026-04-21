@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Plus, Clipboard, Search, X, Check, MapPin, Loader2,
   AlertCircle, CheckCircle2, Clock, ArrowUpDown, ArrowUp,
-  ArrowDown, Download, Bus, Pencil, Trash2, Eye,
+  ArrowDown, Download, Bus, Pencil, Trash2, Eye, BarChart2,
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useFavorites } from '../context/FavoritesContext';
+import { FavoriteButton } from '../components/FavoriteButton';
 import {
   searchPlacesWithFallback,
   getPlaceDetails,
@@ -152,6 +154,7 @@ interface Props { mapsLoaded: boolean }
 
 export const BatchPage: React.FC<Props> = ({ mapsLoaded }) => {
   const { activeDestinations, enabledModes } = useAppContext();
+  const { addToCompare, removeFromCompare, isInCompare } = useFavorites();
 
   // ── Apartment list ──────────────────────────────────────────────────────
 
@@ -685,7 +688,24 @@ export const BatchPage: React.FC<Props> = ({ mapsLoaded }) => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      {/* Favorite toggle */}
+                      <FavoriteButton apartment={apt} />
+
+                      {/* Compare toggle — only when commute is done */}
+                      {apt.commuteStatus === 'done' && (() => {
+                        const inCmp = isInCompare(apt.id);
+                        return (
+                          <button
+                            onClick={e => { e.stopPropagation(); inCmp ? removeFromCompare(apt.id) : addToCompare(apt); }}
+                            title={inCmp ? 'Remove from compare' : 'Add to compare'}
+                            className={['p-1 rounded transition-colors', inCmp ? 'text-blue-500 hover:text-blue-700' : 'text-gray-300 hover:text-blue-400'].join(' ')}
+                          >
+                            <BarChart2 className="w-3.5 h-3.5" />
+                          </button>
+                        );
+                      })()}
+
                       {apt.confirmStatus === 'needs_review' && apt.place && (
                         <>
                           <button
@@ -820,10 +840,25 @@ export const BatchPage: React.FC<Props> = ({ mapsLoaded }) => {
                         apt.id === selectedApartmentId ? 'bg-violet-50' : ''].join(' ')}
                       onClick={() => setSelectedApartmentId(apt.id)}
                     >
-                      {/* Apartment name */}
+                      {/* Apartment name + action icons */}
                       <td className="px-4 py-3 sticky left-0 bg-inherit">
                         <p className="font-medium text-gray-900 text-sm truncate max-w-[150px]">{apt.place?.name ?? apt.inputLabel}</p>
                         <p className="text-[11px] text-gray-400 truncate max-w-[150px]">{apt.place?.formattedAddress}</p>
+                        <div className="flex items-center gap-0.5 mt-1" onClick={e => e.stopPropagation()}>
+                          <FavoriteButton apartment={apt} />
+                          {(() => {
+                            const inCmp = isInCompare(apt.id);
+                            return (
+                              <button
+                                onClick={() => inCmp ? removeFromCompare(apt.id) : addToCompare(apt)}
+                                title={inCmp ? 'Remove from compare' : 'Add to compare'}
+                                className={['p-1 rounded transition-colors', inCmp ? 'text-blue-500 hover:text-blue-700' : 'text-gray-300 hover:text-blue-400'].join(' ')}
+                              >
+                                <BarChart2 className="w-3 h-3" />
+                              </button>
+                            );
+                          })()}
+                        </div>
                       </td>
 
                       {/* Per-destination */}

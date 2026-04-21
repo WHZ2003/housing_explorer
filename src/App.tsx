@@ -9,9 +9,12 @@ import { SummaryPanel } from './components/SummaryPanel';
 import { MapView } from './components/MapView';
 import { TransitPanel } from './components/TransitPanel';
 import { TravelModeSelector } from './components/TravelModeSelector';
+import { CompareModal } from './components/CompareModal';
 import { SettingsPage } from './pages/SettingsPage';
 import { BatchPage } from './pages/BatchPage';
+import { FavoritesPage } from './pages/FavoritesPage';
 import { AppProvider, useAppContext } from './context/AppContext';
+import { FavoritesProvider, useFavorites } from './context/FavoritesContext';
 import { hasApiKey, loadMapsApi } from './services/mapsService';
 import { fetchNearbyTransit } from './services/transitService';
 import { useCommuteData } from './hooks/useCommuteData';
@@ -164,6 +167,8 @@ const AppShell: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('main');
   const [mapsLoaded, setMapsLoaded]   = useState(false);
   const [apiKeyPresent] = useState(hasApiKey);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const { compareItems } = useFavorites();
 
   useEffect(() => {
     if (!apiKeyPresent) return;
@@ -172,9 +177,14 @@ const AppShell: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
-      <NavBar currentPage={currentPage} onNavigate={setCurrentPage} />
+      <NavBar
+        currentPage={currentPage}
+        onNavigate={setCurrentPage}
+        compareCount={compareItems.length}
+        onOpenCompare={() => setCompareOpen(true)}
+      />
 
-      {/* All three pages are always mounted so local state survives navigation.
+      {/* All pages are always mounted so local state survives navigation.
           Inactive pages are hidden with display:none instead of being unmounted. */}
       <div style={{ display: currentPage === 'main' ? 'contents' : 'none' }}>
         <MainPage mapsLoaded={mapsLoaded} apiKeyPresent={apiKeyPresent} />
@@ -198,6 +208,16 @@ const AppShell: React.FC = () => {
         )}
         <BatchPage mapsLoaded={mapsLoaded} />
       </div>
+
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ display: currentPage === 'favorites' ? 'block' : 'none' }}
+      >
+        <FavoritesPage />
+      </div>
+
+      {/* Compare modal — global overlay, accessible from any page */}
+      {compareOpen && <CompareModal onClose={() => setCompareOpen(false)} />}
     </div>
   );
 };
@@ -208,7 +228,9 @@ const AppShell: React.FC = () => {
 
 const App: React.FC = () => (
   <AppProvider>
-    <AppShell />
+    <FavoritesProvider>
+      <AppShell />
+    </FavoritesProvider>
   </AppProvider>
 );
 
